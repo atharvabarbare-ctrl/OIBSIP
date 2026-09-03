@@ -1,0 +1,901 @@
+const crypto = require("crypto");
+const mongoose = require("mongoose");
+
+const razorpay =
+    require("../services/razorpayService");
+
+const Pizza =
+    require("../models/Pizza");
+
+const Order =
+    require("../models/Order");
+
+const Inventory =
+    require("../models/Inventory");
+
+
+// =====================================================
+// CUSTOM PIZZA CONFIGURATION
+// =====================================================
+
+const CUSTOM_PIZZA_PRICES = {
+
+    sizes: {
+        Small: 149,
+        Medium: 199,
+        Large: 249
+    },
+
+    bases: {
+        "Classic Hand Tossed": 40,
+        "Thin Crust": 50,
+        "Cheese Burst": 80
+    },
+
+    sauces: {
+        "Classic Tomato": 20,
+        "Spicy Peri Peri": 30,
+        "Creamy Garlic": 35
+    },
+
+    cheeses: {
+        "Mozzarella": 40,
+        "Cheddar": 50,
+        "Mozzarella + Cheddar": 70
+    },
+
+    vegetables: {
+        Onion: 15,
+        Capsicum: 15,
+        "Sweet Corn": 20,
+        Mushroom: 25,
+        Jalapeno: 20,
+        Olives: 25
+    }
+
+};
+
+
+// =====================================================
+// CHECK CUSTOM PIZZA
+// =====================================================
+
+const isCustomPizza = (item) => {
+
+    return (
+        item?.isCustom === true
+        ||
+        String(item?.pizza || "")
+            .startsWith("custom-")
+    );
+
+};
+
+
+// =====================================================
+// NORMAL PIZZA VALIDATION
+// =====================================================
+
+const validateNormalPizza = async (item) => {
+
+    const pizza =
+        await Pizza.findById(item.pizza);
+
+
+    if (!pizza) {
+
+        throw new Error(
+            `Pizza not found: ${item.name || ""}`
+        );
+
+    }
+
+
+    if (!pizza.isAvailable) {
+
+        throw new Error(
+            `${pizza.name} is currently unavailable.`
+        );
+
+    }
+
+
+    const selectedSize =
+        pizza.sizes.find(
+            size =>
+                size.name ===
+                item.size?.name
+        );
+
+
+    if (!selectedSize) {
+
+        throw new Error(
+            `Invalid size for ${pizza.name}.`
+        );
+
+    }
+
+
+    const quantity =
+        Number(item.quantity);
+
+
+    if (
+        !Number.isInteger(quantity)
+        ||
+        quantity < 1
+    ) {
+
+        throw new Error(
+            "Invalid quantity."
+        );
+
+    }
+
+
+    return {
+
+        pizza:
+            pizza._id,
+
+        isCustom:
+            false,
+
+        name:
+            pizza.name,
+
+        image:
+            pizza.image,
+
+        size: {
+
+            name:
+                selectedSize.name,
+
+            price:
+                selectedSize.price
+
+        },
+
+        quantity,
+
+        itemTotal:
+            selectedSize.price *
+            quantity
+
+    };
+
+};
+
+
+// =====================================================
+// FIND INVENTORY ITEM
+// =====================================================
+
+const findInventoryItem = async (
+    name,
+    category
+) => {
+
+    if (!name) {
+
+        throw new Error(
+            `Invalid ${category.toLowerCase()} selection.`
+        );
+
+    }
+
+
+    const cleanName =
+        String(name).trim();
+
+
+    const item =
+        await Inventory.findOne({
+
+            name:
+                cleanName,
+
+            category
+
+        });
+
+
+    if (!item) {
+
+        throw new Error(
+            `${category} "${cleanName}" is not configured in inventory.`
+        );
+
+    }
+
+
+    if (!item.isAvailable) {
+
+        throw new Error(
+            `${category} "${cleanName}" is currently unavailable.`
+        );
+
+    }
+
+
+    if (
+        Number(item.stock) <= 0
+    ) {
+
+        throw new Error(
+            `${category} "${cleanName}" is out of stock.`
+        );
+
+    }
+
+
+    return item;
+
+};
+// =====================================================
+// GET CONFIGURED PRICE
+// =====================================================
+
+const getConfiguredPrice = (
+    priceMap,
+    name
+) => {
+
+    if (
+        !priceMap ||
+        !name
+    ) {
+
+        return null;
+
+    }
+
+
+    const cleanName =
+        String(name)
+            .trim()
+            .replace(/\s+/g, " ")
+            .toLowerCase();
+
+
+    const key =
+        Object.keys(priceMap)
+            .find(
+                item =>
+                    item
+                        .trim()
+                        .replace(/\s+/g, " ")
+                        .toLowerCase() ===
+                    cleanName
+            );
+
+
+    if (
+        key === undefined
+    ) {
+
+        return null;
+
+    }
+
+
+    return {
+
+        name: key,
+
+        price:
+            priceMap[key]
+
+    };
+
+};
+
+
+// =====================================================
+// CUSTOM PIZZA VALIDATION
+// =====================================================
+
+const validateCustomPizza = async (
+    item
+) => {
+
+    const customizations =
+        item.customizations || {};
+
+
+    // =================================================
+    // NORMALIZE SELECTION
+    // =================================================
+
+    const getName = (
+        value
+    ) => {
+
+        if (
+            typeof value === "string"
+        ) {
+
+            return value
+                .trim()
+                .replace(/\s+/g, " ");
+
+        }
+
+
+        if (
+            value &&
+            typeof value === "object"
+        ) {
+
+            return typeof value.name === "string"
+
+                ? value.name
+                    .trim()
+                    .replace(/\s+/g, " ")
+
+                : "";
+
+        }
+
+
+        return "";
+
+    };
+
+
+    // =================================================
+    // GET SELECTED VALUES
+    // =================================================
+
+    const sizeName =
+        getName(
+            item.size?.name
+        );
+
+
+    const baseName =
+        getName(
+            customizations.base
+        );
+
+
+    const sauceName =
+        getName(
+            customizations.sauce
+        );
+
+
+    const cheeseName =
+        getName(
+            customizations.cheese
+        );
+
+
+    const vegetables =
+        Array.isArray(
+            customizations.vegetables
+        )
+            ? customizations.vegetables
+            : [];
+
+
+    // =================================================
+    // SIZE
+    // =================================================
+
+    const sizeConfig =
+        getConfiguredPrice(
+            CUSTOM_PIZZA_PRICES.sizes,
+            sizeName
+        );
+
+
+    if (!sizeConfig) {
+
+        throw new Error(
+            `Invalid custom pizza size: ${
+                sizeName || "missing"
+            }`
+        );
+
+    }
+
+
+    // =================================================
+    // QUANTITY
+    // =================================================
+
+    const quantity =
+        Number(
+            item.quantity
+        );
+
+
+    if (
+        !Number.isInteger(quantity)
+        ||
+        quantity < 1
+    ) {
+
+        throw new Error(
+            "Invalid quantity."
+        );
+
+    }
+
+
+    // =================================================
+    // BASE
+    // =================================================
+
+    if (!baseName) {
+
+        throw new Error(
+            "Invalid custom pizza base."
+        );
+
+    }
+
+
+    const baseConfig =
+        getConfiguredPrice(
+            CUSTOM_PIZZA_PRICES.bases,
+            baseName
+        );
+
+
+    if (!baseConfig) {
+
+        throw new Error(
+            `Invalid custom pizza base: ${baseName}`
+        );
+
+    }
+
+
+    const baseInventory =
+        await findInventoryItem(
+            baseConfig.name,
+            "Base"
+        );
+
+
+    // =================================================
+    // SAUCE
+    // =================================================
+
+    if (!sauceName) {
+
+        throw new Error(
+            "Invalid custom pizza sauce."
+        );
+
+    }
+
+
+    const sauceConfig =
+        getConfiguredPrice(
+            CUSTOM_PIZZA_PRICES.sauces,
+            sauceName
+        );
+
+
+    if (!sauceConfig) {
+
+        throw new Error(
+            `Invalid custom pizza sauce: ${sauceName}`
+        );
+
+    }
+
+
+    const sauceInventory =
+        await findInventoryItem(
+            sauceConfig.name,
+            "Sauce"
+        );
+
+
+    // =================================================
+    // CHEESE
+    // =================================================
+
+    if (!cheeseName) {
+
+        throw new Error(
+            "Invalid custom pizza cheese."
+        );
+
+    }
+
+
+    const cheeseConfig =
+        getConfiguredPrice(
+            CUSTOM_PIZZA_PRICES.cheeses,
+            cheeseName
+        );
+
+
+    if (!cheeseConfig) {
+
+        throw new Error(
+            `Invalid custom pizza cheese: ${cheeseName}`
+        );
+
+    }
+
+
+    // =================================================
+    // CHEESE INVENTORY
+    // =================================================
+
+    const cheeseInventory = [];
+
+
+    if (
+        cheeseConfig.name
+            .toLowerCase() ===
+        "mozzarella + cheddar"
+    ) {
+
+        const mozzarella =
+            await findInventoryItem(
+                "Mozzarella",
+                "Cheese"
+            );
+
+
+        const cheddar =
+            await findInventoryItem(
+                "Cheddar",
+                "Cheese"
+            );
+
+
+        cheeseInventory.push(
+            mozzarella,
+            cheddar
+        );
+
+    } else {
+
+        const cheese =
+            await findInventoryItem(
+                cheeseConfig.name,
+                "Cheese"
+            );
+
+
+        cheeseInventory.push(
+            cheese
+        );
+
+    }
+
+
+    // =================================================
+    // VEGETABLES
+    // =================================================
+
+    const validatedVegetables = [];
+
+    const selectedVegetables =
+        new Set();
+
+    let vegetablesTotal = 0;
+
+
+    for (
+        const vegetable
+        of vegetables
+    ) {
+
+        const vegetableName =
+            getName(
+                vegetable
+            );
+
+
+        if (!vegetableName) {
+
+            throw new Error(
+                "Invalid custom pizza vegetable."
+            );
+
+        }
+
+
+        const duplicateKey =
+            vegetableName
+                .toLowerCase();
+
+
+        if (
+            selectedVegetables.has(
+                duplicateKey
+            )
+        ) {
+
+            throw new Error(
+                `Duplicate vegetable: ${vegetableName}`
+            );
+
+        }
+
+
+        selectedVegetables.add(
+            duplicateKey
+        );
+
+
+        const vegetableConfig =
+            getConfiguredPrice(
+                CUSTOM_PIZZA_PRICES.vegetables,
+                vegetableName
+            );
+
+
+        if (!vegetableConfig) {
+
+            throw new Error(
+                `Invalid custom pizza vegetable: ${vegetableName}`
+            );
+
+        }
+
+
+        const vegetableInventory =
+            await findInventoryItem(
+                vegetableConfig.name,
+                "Vegetable"
+            );
+
+
+        vegetablesTotal +=
+            vegetableConfig.price;
+
+
+        validatedVegetables.push({
+
+            name:
+                vegetableInventory.name,
+
+            price:
+                vegetableConfig.price
+
+        });
+
+    }
+
+
+    // =================================================
+    // FINAL CUSTOM PIZZA PRICE
+    // =================================================
+
+    const customPizzaPrice =
+        sizeConfig.price
+        +
+        baseConfig.price
+        +
+        sauceConfig.price
+        +
+        cheeseConfig.price
+        +
+        vegetablesTotal;
+
+
+    // =================================================
+    // RETURN VALIDATED ITEM
+    // =================================================
+
+    return {
+
+        pizza:
+            null,
+
+        isCustom:
+            true,
+
+        name:
+            "Custom Pizza",
+
+        image:
+            item.image || "",
+
+        size: {
+
+            name:
+                sizeConfig.name,
+
+            price:
+                sizeConfig.price
+
+        },
+
+        quantity,
+
+        customizations: {
+
+            base: {
+
+                name:
+                    baseInventory.name,
+
+                price:
+                    baseConfig.price
+
+            },
+
+            sauce: {
+
+                name:
+                    sauceInventory.name,
+
+                price:
+                    sauceConfig.price
+
+            },
+
+            cheese: {
+
+                name:
+                    cheeseConfig.name,
+
+                price:
+                    cheeseConfig.price
+
+            },
+
+            vegetables:
+                validatedVegetables
+
+        },
+
+        itemTotal:
+            customPizzaPrice *
+            quantity
+
+    };
+
+};
+// =====================================================
+// VALIDATE ALL ORDER ITEMS
+// =====================================================
+
+const validateOrderItems = async (
+    items
+) => {
+
+    if (
+        !Array.isArray(items) ||
+        items.length === 0
+    ) {
+
+        throw new Error(
+            "Order must contain at least one item."
+        );
+
+    }
+
+
+    const validatedItems = [];
+
+
+    for (
+        const item
+        of items
+    ) {
+
+        if (!item) {
+
+            throw new Error(
+                "Invalid order item."
+            );
+
+        }
+
+
+        // =============================================
+        // CUSTOM PIZZA
+        // =============================================
+
+        if (
+            isCustomPizza(item)
+        ) {
+
+            const validatedCustomPizza =
+                await validateCustomPizza(
+                    item
+                );
+
+
+            validatedItems.push(
+                validatedCustomPizza
+            );
+
+            continue;
+
+        }
+
+
+        // =============================================
+        // NORMAL PIZZA
+        // =============================================
+
+        const validatedNormalPizza =
+            await validateNormalPizza(
+                item
+            );
+
+
+        validatedItems.push(
+            validatedNormalPizza
+        );
+
+    }
+
+
+    return validatedItems;
+
+};
+
+
+// =====================================================
+// CALCULATE SUBTOTAL
+// =====================================================
+
+const calculateSubtotal = (
+    items
+) => {
+
+    return items.reduce(
+        (
+            total,
+            item
+        ) => {
+
+            return (
+                total +
+                Number(
+                    item.itemTotal || 0
+                )
+            );
+
+        },
+        0
+    );
+
+};
+
+
+// =====================================================
+// DO NOT ADD createRazorpayOrder HERE
+// =====================================================
+//
+// IMPORTANT:
+//
+// Tumhari original paymentController.js mein
+// createRazorpayOrder already hai.
+//
+// Tumhari original verifyRazorpayPayment bhi hai.
+//
+// Un dono ko delete/rewrite MAT karna.
+//
+// Sirf upar wale validation functions ko use
+// karna hai.
+//
+
+
+// =====================================================
+// FINAL EXPORTS
+// =====================================================
+
+module.exports = {
+
+    createRazorpayOrder,
+
+    verifyRazorpayPayment
+
+};
