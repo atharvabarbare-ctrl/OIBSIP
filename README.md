@@ -12,11 +12,12 @@ This repository contains my project work completed as part of the **Oasis Infoby
 **Level:** Level 3  
 **Task:** Task 1 – Pizza Delivery Full-Stack Application
 
-PizzaHub is a full-stack pizza delivery application that provides a complete online pizza ordering workflow with authentication, custom pizza creation, online payment testing, order tracking, admin order management and inventory management.
+PizzaHub is a full-stack pizza delivery application that provides a complete online pizza ordering workflow with authentication, custom pizza creation, online payment testing, order tracking, admin order management, and inventory management.
 
 ## ✨ Key Features
 
 ### 👤 User Side
+
 - User Registration
 - Email Verification
 - JWT Authentication
@@ -30,6 +31,7 @@ PizzaHub is a full-stack pizza delivery application that provides a complete onl
 - Order Tracking
 
 ### 👨‍💼 Admin Side
+
 - Separate Admin Login
 - Admin Dashboard
 - Order Management
@@ -54,7 +56,7 @@ PizzaHub is a full-stack pizza delivery application that provides a complete onl
 
 ## 📁 Repository Structure
 
-`	ext
+```text
 OIBSIP/
 └── WebDev-L3-Task1-PizzaDelivery/
     ├── client/
@@ -68,11 +70,20 @@ The project screenshots are available inside:
 
 WebDev-L3-Task1-PizzaDelivery/screenshots/
 
-The screenshots demonstrate the application's home page, pizza menu, custom pizza builder, cart, checkout, Razorpay test mode, order tracking, admin dashboard and inventory management.
+The screenshots demonstrate the application's:
 
+Home page
+Pizza menu
+Custom pizza builder
+Cart
+Checkout
+Razorpay test mode
+Order tracking
+Admin dashboard
+Inventory management
 🎯 Objective
 
-The objective of this project was to build a complete full-stack pizza delivery application while gaining practical experience in frontend development, backend APIs, database integration, authentication, payment integration, order management and inventory management.
+The objective of this project was to build a complete full-stack pizza delivery application while gaining practical experience in frontend development, backend APIs, database integration, authentication, payment integration, order management, and inventory management.
 
 👨‍💻 Developer
 
