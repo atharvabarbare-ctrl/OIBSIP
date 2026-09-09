@@ -15,12 +15,9 @@ const {
     startLowStockMonitor
 } = require("./services/lowStockMonitor");
 
-
 const app = express();
 
-
-const PORT =
-    process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
 
 // =====================================================
@@ -141,14 +138,15 @@ const startServer = async () => {
 
         app.listen(
             PORT,
+            "0.0.0.0",
             () => {
 
                 console.log(
-                    `🍕 PizzaHub API running on http://localhost:${PORT}`
+                    `🍕 PizzaHub API running on port ${PORT}`
                 );
 
                 console.log(
-                    `📦 Inventory API running on http://localhost:${PORT}/api/inventory`
+                    `📦 Inventory API running on port ${PORT}/api/inventory`
                 );
 
             }
