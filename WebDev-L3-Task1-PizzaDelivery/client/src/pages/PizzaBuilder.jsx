@@ -97,7 +97,7 @@ const SIZES = [
 ===================================================== */
 
 const INVENTORY_API =
-    "http://localhost:5000/api/inventory";
+    `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/inventory`;
 
 
 /* =====================================================

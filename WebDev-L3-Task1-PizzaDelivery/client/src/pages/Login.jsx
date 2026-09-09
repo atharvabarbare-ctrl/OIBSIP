@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import {
@@ -108,7 +108,7 @@ function Login() {
 
             const response =
                 await fetch(
-                    "http://localhost:5000/api/auth/login",
+                    `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/auth/login`,
                     {
 
                         method: "POST",
@@ -251,7 +251,7 @@ function Login() {
 
                 const response =
                     await fetch(
-                        "http://localhost:5000/api/auth/resend-verification",
+                        `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/auth/resend-verification`,
                         {
 
                             method: "POST",

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import {
@@ -19,7 +19,7 @@ import { createOrder } from "../services/api";
 // =====================================================
 
 const API_URL =
-    "http://localhost:5000/api";
+    (import.meta.env.VITE_API_URL || "http://localhost:5000/api");
 
 
 // =====================================================
