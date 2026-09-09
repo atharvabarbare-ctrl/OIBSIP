@@ -1,4 +1,4 @@
-﻿const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 
 // =====================================================
@@ -9,7 +9,7 @@ export const getPizzas = async (params = "") => {
 
     const response =
         await fetch(
-            `${API_URL}/pizzas${params}`
+            `${API_URL}/api/pizzas${params}`
         );
 
     if (!response.ok) {
