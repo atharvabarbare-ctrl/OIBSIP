@@ -1,21 +1,16 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // =====================================================
 // PIZZAS
 // =====================================================
 
 export const getPizzas = async (params = "") => {
-
-    const response =
-        await fetch(
-            `${API_URL}/api/pizzas${params}`
-        );
+    const response = await fetch(
+        `${API_URL}/api/pizzas${params}`
+    );
 
     if (!response.ok) {
-        throw new Error(
-            "Failed to fetch pizzas"
-        );
+        throw new Error("Failed to fetch pizzas");
     }
 
     return response.json();
@@ -27,44 +22,36 @@ export const getPizzas = async (params = "") => {
 // =====================================================
 
 export const loginUser = async (data) => {
+    const response = await fetch(
+        `${API_URL}/api/auth/login`,
+        {
+            method: "POST",
 
-    const response =
-        await fetch(
-            `${API_URL}/auth/login`,
-            {
-                method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
 
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body:
-                    JSON.stringify(data)
-            }
-        );
+            body: JSON.stringify(data)
+        }
+    );
 
     return response.json();
 };
 
 
 export const registerUser = async (data) => {
+    const response = await fetch(
+        `${API_URL}/api/auth/register`,
+        {
+            method: "POST",
 
-    const response =
-        await fetch(
-            `${API_URL}/auth/register`,
-            {
-                method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
 
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body:
-                    JSON.stringify(data)
-            }
-        );
+            body: JSON.stringify(data)
+        }
+    );
 
     return response.json();
 };
@@ -78,44 +65,34 @@ export const createOrder = async (
     orderData,
     token
 ) => {
+    const response = await fetch(
+        `${API_URL}/api/orders`,
+        {
+            method: "POST",
 
-    const response =
-        await fetch(
-            `${API_URL}/orders`,
-            {
-                method: "POST",
+            headers: {
+                "Content-Type": "application/json",
 
-                headers: {
-                    "Content-Type":
-                        "application/json",
+                Authorization: `Bearer ${token}`
+            },
 
-                    Authorization:
-                        `Bearer ${token}`
-                },
-
-                body:
-                    JSON.stringify(orderData)
-            }
-        );
+            body: JSON.stringify(orderData)
+        }
+    );
 
     return response.json();
 };
 
 
-export const getMyOrders = async (
-    token
-) => {
-
-    const response =
-        await fetch(
-            `${API_URL}/orders/my-orders`,
-            {
-                headers: {
-                    Authorization:
-                        `Bearer ${token}`
-                }
+export const getMyOrders = async (token) => {
+    const response = await fetch(
+        `${API_URL}/api/orders/my-orders`,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`
             }
-        );
+        }
+    );
 
     return response.json();
 };
@@ -126,38 +103,23 @@ export const getMyOrders = async (
 // ADMIN ONLY
 // =====================================================
 
-
-// GET ALL INVENTORY
-
-export const getInventory = async (
-    token
-) => {
-
-    const response =
-        await fetch(
-            `${API_URL}/inventory`,
-            {
-                headers: {
-                    Authorization:
-                        `Bearer ${token}`
-                }
+export const getInventory = async (token) => {
+    const response = await fetch(
+        `${API_URL}/api/inventory`,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`
             }
-        );
+        }
+    );
 
-
-    const data =
-        await response.json();
-
+    const data = await response.json();
 
     if (!response.ok) {
-
         throw new Error(
-            data.message ||
-            "Failed to fetch inventory."
+            data.message || "Failed to fetch inventory."
         );
-
     }
-
 
     return data;
 };
@@ -167,145 +129,99 @@ export const getInventory = async (
 // CREATE INVENTORY ITEM
 // =====================================================
 
-export const createInventoryItem =
-    async (
-        inventoryData,
-        token
-    ) => {
+export const createInventoryItem = async (
+    inventoryData,
+    token
+) => {
+    const response = await fetch(
+        `${API_URL}/api/inventory`,
+        {
+            method: "POST",
 
-        const response =
-            await fetch(
-                `${API_URL}/inventory`,
-                {
-                    method: "POST",
+            headers: {
+                "Content-Type": "application/json",
 
-                    headers: {
+                Authorization: `Bearer ${token}`
+            },
 
-                        "Content-Type":
-                            "application/json",
-
-                        Authorization:
-                            `Bearer ${token}`
-                    },
-
-                    body:
-                        JSON.stringify(
-                            inventoryData
-                        )
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.message ||
-                "Failed to create inventory item."
-            );
-
+            body: JSON.stringify(inventoryData)
         }
+    );
 
+    const data = await response.json();
 
-        return data;
+    if (!response.ok) {
+        throw new Error(
+            data.message || "Failed to create inventory item."
+        );
+    }
 
-    };
+    return data;
+};
 
 
 // =====================================================
 // UPDATE INVENTORY ITEM
 // =====================================================
 
-export const updateInventoryItem =
-    async (
-        id,
-        inventoryData,
-        token
-    ) => {
+export const updateInventoryItem = async (
+    id,
+    inventoryData,
+    token
+) => {
+    const response = await fetch(
+        `${API_URL}/api/inventory/${id}`,
+        {
+            method: "PUT",
 
-        const response =
-            await fetch(
-                `${API_URL}/inventory/${id}`,
-                {
-                    method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
 
-                    headers: {
+                Authorization: `Bearer ${token}`
+            },
 
-                        "Content-Type":
-                            "application/json",
-
-                        Authorization:
-                            `Bearer ${token}`
-                    },
-
-                    body:
-                        JSON.stringify(
-                            inventoryData
-                        )
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.message ||
-                "Failed to update inventory item."
-            );
-
+            body: JSON.stringify(inventoryData)
         }
+    );
 
+    const data = await response.json();
 
-        return data;
+    if (!response.ok) {
+        throw new Error(
+            data.message || "Failed to update inventory item."
+        );
+    }
 
-    };
+    return data;
+};
 
 
 // =====================================================
 // DELETE INVENTORY ITEM
 // =====================================================
 
-export const deleteInventoryItem =
-    async (
-        id,
-        token
-    ) => {
+export const deleteInventoryItem = async (
+    id,
+    token
+) => {
+    const response = await fetch(
+        `${API_URL}/api/inventory/${id}`,
+        {
+            method: "DELETE",
 
-        const response =
-            await fetch(
-                `${API_URL}/inventory/${id}`,
-                {
-                    method: "DELETE",
-
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`
-                    }
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.message ||
-                "Failed to delete inventory item."
-            );
-
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
         }
+    );
 
+    const data = await response.json();
 
-        return data;
+    if (!response.ok) {
+        throw new Error(
+            data.message || "Failed to delete inventory item."
+        );
+    }
 
-    };
+    return data;
+};
